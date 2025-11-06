@@ -377,10 +377,17 @@ First, the data is converted to structured Parquet format using `notebooks/etl.i
 - `j_gene`: IGHJ or TRBJ gene segment name
 - `cdr3_seq_aa_q_trim`: CDR3 amino acid sequence
 - `v_mut`: Somatic hypermutation rate, specifically the fraction of V region nucleotides that are mutated (BCR only)
-- `isotype_supergroup`: either `IGHG`, `IGHA`, `IGHD-M` (combining IgD and IgM), or `TCRB`. The name "supergroup" refers to the fact that we are overloading the definition of isotypes by combining IgD and IgM, and by labeling all TCR data as `isotype_supergroup="TCRB"` for convenience so the two types of sequences can be stored in the same Parquet data, even though TCRs don't have isotypes by definition. (Note that IgE is filtered out in the subsampling step, as are unmutated IgD and IgM sequences which represent naive B cells.)
+- `isotype_supergroup`: either `IGHG`, `IGHA`, `IGHD-M` (combining IgD and IgM), or `TCRB`. The name "supergroup" refers to the fact that we are overloading the definition of isotypes by combining IgD and IgM, and by labeling all TCR data as `isotype_supergroup="TCRB"` for convenience so the two types of sequences can be stored in the same Parquet data, even though TCRs don't have isotypes by definition. (Note that IgE is filtered out in the subsampling step, as are unmutated IgD and IgM sequences which represent naive B cells.) 
 - _See the `malid.etl.dtypes_expected_after_preprocessing` object for the full schema._
 
-Next, the data is subsampled to one sequence per isotype from each clone for each sample or replicate. This happens in `notebooks/sample_sequences.ipynb`, and the logic is implemented in `malid/sample_sequences.py`. At this point, we also remove samples with low clone counts and filter out IgE, unmutated IgM, and unmutated IgD data.
+Next, the data is subsampled to one sequence per isotype from each clone for each sample or replicate. This happens in `notebooks/sample_sequences.ipynb`, and the logic is implemented in `malid/sample_sequences.py`. At this point, we also remove samples with low clone counts and filter out IgE, unmutated IgM, and unmutated IgD data. ATENCIÓN, AQUÍ CREO QUE NOS INTERESA GUARDAR LAS IGMs DADO QUE LAS ABCs SON EN SU MAYORÍA IGM. TAMBIÉN PIENSO QUE IGUAL LOS PARÁMETROS QUE TIENEN EN EL CÓDIGO DE REQUIRED_CLONE_COUNTS_BY_ISOTYPE PUEDE QUE SEAN ALTOS. QUIZÁS HAYA QUE MODIFICAR ESTAS LINEAS
+
+REQUIRED_CLONE_COUNTS_BY_ISOTYPE = {
+    "IGHG": 100,
+    "IGHA": 100,
+    "IGHD-M": 500,
+    "TCRB": 500,
+}
 
 Finally, the data is split into cross-validation folds and the sequences are transformed into language model embeddings. The data can now be loaded using the `malid.io.load_fold_embeddings` function, which returns AnnData objects. Assuming the AnnData object is named `adata`, a matrix of embedding vectors is accessible via `adata.X`, and the metadata and raw sequences are stored as a Pandas DataFrame under `adata.obs`. _See the [tutorial](https://nbviewer.org/github/maximz/malid/blob/master/notebooks/tutorial.ipynb) for a demo._
 
